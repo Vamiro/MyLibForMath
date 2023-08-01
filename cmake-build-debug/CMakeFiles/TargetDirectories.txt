@@ -1,0 +1,3 @@
+C:/Users/Vovka/CLionProjects/MyLibForMath/cmake-build-debug/CMakeFiles/MyLibForMath.dir
+C:/Users/Vovka/CLionProjects/MyLibForMath/cmake-build-debug/CMakeFiles/edit_cache.dir
+C:/Users/Vovka/CLionProjects/MyLibForMath/cmake-build-debug/CMakeFiles/rebuild_cache.dir

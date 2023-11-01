@@ -3,6 +3,7 @@
 
 #include <cstdlib>
 #include <stdexcept>
+#include <concepts>
 
 template<typename T>
 class Array final {
@@ -33,11 +34,13 @@ public:
 
 	class Iterator {
 	public:
+		using value_type = T;
+
 		Iterator();
 		Iterator(size_type index, Array* array);
 		Iterator(const Iterator& other);
 		Iterator(Iterator&& other);
-		
+
 		const T& get() const;
 		void set(const T& value);
 		void next();
@@ -55,18 +58,22 @@ public:
 		Iterator& operator--(int);
 		T& operator*() const;
 		T* operator->() const;
+		Iterator& operator=(const Iterator& other);
 		Iterator& operator+=(ptrdiff_t n);
 		Iterator& operator-=(ptrdiff_t n);
 		ptrdiff_t operator-(const Iterator& other) const;
+		Iterator operator-(ptrdiff_t n) const;
 		T& operator[](ptrdiff_t n);
 
 	private:
 		size_type index_;
 		Array* array_;
 	};
-	
+
 	class ConstIterator {
 	public:
+		using value_type = T;
+
 		ConstIterator();
 		ConstIterator(size_type index, const Array* array);
 		ConstIterator(const ConstIterator& other);
@@ -88,9 +95,11 @@ public:
 		ConstIterator& operator--(int);
 		const T& operator*() const;
 		const T* operator->() const;
+		ConstIterator& operator=(const ConstIterator& other);
 		ConstIterator& operator+=(ptrdiff_t n);
 		ConstIterator& operator-=(ptrdiff_t n);
 		ptrdiff_t operator-(const ConstIterator& other) const;
+		ConstIterator operator-(ptrdiff_t n) const;
 		const T& operator[](ptrdiff_t n) const;
 	private:
 		size_type index_;
@@ -115,7 +124,7 @@ private:
 };
 
 template<typename T>
-inline Array<T>::Array() : capacity_(16), size_(16), buf_(nullptr) {
+inline Array<T>::Array() : capacity_(0), size_(0), buf_(nullptr) {
 	if (!(buf_ = (T*)malloc(sizeof(T) * capacity_))) {
 		throw std::bad_alloc();
 	}
@@ -152,7 +161,7 @@ inline Array<T>::Array(Array&& other) {
 template<typename T>
 inline Array<T>::~Array() {
 	if (buf_) {
-		for (int i = 0; i < size_; i++) {
+		for (size_type i = 0; i < size_; i++) {
 			buf_[i].~T();
 		}
 		free(buf_);
@@ -172,7 +181,8 @@ inline void Array<T>::reserve(size_type newCapacity) {
 		for (size_type i = 0; i < size_; i++) {
 			if (std::movable<T>) {
 				ptr[i] = std::move(buf_[i]);
-			} else {
+			}
+			else {
 				ptr[i] = buf_[i];
 				buf_[i].~T();
 			}
@@ -184,7 +194,7 @@ inline void Array<T>::reserve(size_type newCapacity) {
 }
 
 template<typename T>
-inline Array<T>::size_type Array<T>::push_back(const T& value) {
+inline typename Array<T>::size_type Array<T>::push_back(const T& value) {
 	if (capacity_ == size_) {
 		reserve(capacity_ * 2);
 	}
@@ -193,19 +203,22 @@ inline Array<T>::size_type Array<T>::push_back(const T& value) {
 }
 
 template<typename T>
-inline Array<T>::size_type Array<T>::insert(size_type index, const T& value) {
+inline typename Array<T>::size_type Array<T>::insert(size_type index, const T& value) {
 	if (index == size_) {
-		push_back(value); 
-	} else if (index > size_) {
-		throw std::out_of_range();
-	} else {
+		push_back(value);
+	}
+	else if (index > size_) {
+		throw std::out_of_range("");
+	}
+	else {
 		if (capacity_ == size_) {
 			reserve(capacity_ * 2);
 		}
 		for (size_type i = size_; i > index; i--) {
 			if (std::movable<T>) {
 				buf_[i] = std::move(buf_[i - 1]);
-			} else {
+			}
+			else {
 				buf_[i] = buf_[i - 1];
 			}
 		}
@@ -218,14 +231,17 @@ inline Array<T>::size_type Array<T>::insert(size_type index, const T& value) {
 template<typename T>
 inline void Array<T>::remove(size_type index) {
 	if (index >= size_) {
-		throw std::out_of_range();
-	} else if (index == size_ - 1) {
+		throw std::out_of_range("");
+	}
+	else if (index == size_ - 1) {
 		buf_[index].~T();
-	} else {
+	}
+	else {
 		for (size_type i = index; i < size_ - 1; i++) {
 			if (std::movable<T>) {
 				buf_[i] = std::move(buf_[i + 1]);
-			} else {
+			}
+			else {
 				buf_[i] = buf_[i + 1];
 			}
 		}
@@ -246,15 +262,17 @@ inline T& Array<T>::operator[](size_type index) {
 
 template<typename T>
 inline Array<T>& Array<T>::operator=(const Array& other) {
-	~Array();
+	this->~Array();
 	capacity_ = other.capacity_;
 	size_ = other.size_;
 
 	if (capacity_ == 0) {
 		buf_ = nullptr;
-	} else if (!(buf_ = (T*)malloc(sizeof(T) * capacity_))) {
+	}
+	else if (!(buf_ = (T*)malloc(sizeof(T) * capacity_))) {
 		throw std::bad_alloc();
-	} else {
+	}
+	else {
 		for (size_type i = 0; i < size_; i++) {
 			buf_[i] = other.buf_[i];
 		}
@@ -264,62 +282,63 @@ inline Array<T>& Array<T>::operator=(const Array& other) {
 
 template<typename T>
 inline Array<T>& Array<T>::operator=(Array&& other) {
-	~Array();
+	this->~Array();
 	capacity_ = other.capacity_;
 	size_ = other.size_;
 	buf_ = other.buf_;
 	other.capacity_ = 0;
 	other.size_ = 0;
 	other.buf_ = nullptr;
+	return *this;
 }
 
 template<typename T>
-inline Array<T>::size_type Array<T>::size() const {
+inline typename Array<T>::size_type Array<T>::size() const {
 	return size_;
 }
 
 template<typename T>
-inline Array<T>::size_type Array<T>::capacity() const {
+inline typename Array<T>::size_type Array<T>::capacity() const {
 	return capacity_;
 }
 
 template<typename T>
-inline Array<T>::Iterator Array<T>::begin() {
+inline typename Array<T>::Iterator Array<T>::begin() {
 	return Iterator(0, this);
 }
 
 template<typename T>
-inline Array<T>::ConstIterator Array<T>::cbegin() const {
+inline typename Array<T>::ConstIterator Array<T>::cbegin() const {
 	return ConstIterator(0, this);
 }
 
 template<typename T>
-inline Array<T>::Iterator Array<T>::end() {
+inline typename Array<T>::Iterator Array<T>::end() {
 	return Iterator(size_, this);
 }
 
 template<typename T>
-inline Array<T>::ConstIterator Array<T>::cend() const {
+inline typename Array<T>::ConstIterator Array<T>::cend() const {
 	return ConstIterator(size_, this);
 }
 
 template<typename T>
-inline Array<T>::Iterator Array<T>::iterator() {
+inline typename Array<T>::Iterator Array<T>::iterator() {
 	return Iterator(0, this);
 }
 
 template<typename T>
-inline Array<T>::ConstIterator Array<T>::iterator() const {
+inline typename Array<T>::ConstIterator Array<T>::iterator() const {
 	return ConstIterator(0, this);
 }
 
 template<typename T>
-inline Array<T>::Iterator Array<T>::reverseIterator() {
+inline typename Array<T>::Iterator Array<T>::reverseIterator() {
 	return Iterator(size_ - 1, this);
 }
 
 template<typename T>
-inline Array<T>::ConstIterator Array<T>::reverseIterator() const {
+inline typename Array<T>::ConstIterator Array<T>::reverseIterator() const {
 	return ConstIterator(size_ - 1, this);
 }
 
@@ -351,7 +370,7 @@ inline void Array<T>::Iterator::set(const T& value) {
 }
 
 template<typename T>
-inline void Array<T>::Iterator::next(){
+inline void Array<T>::Iterator::next() {
 	if (hasNext()) index_++;
 }
 
@@ -391,34 +410,36 @@ inline bool Array<T>::Iterator::operator>=(const Iterator& other) const {
 }
 
 template<typename T>
-inline Array<T>::Iterator& Array<T>::Iterator::operator++() {
+inline typename Array<T>::Iterator& Array<T>::Iterator::operator++() {
 	if (index_ < array_->size()) index_++;
 	return *this;
 }
 
 template<typename T>
-inline Array<T>::Iterator& Array<T>::Iterator::operator++(int) {
+inline typename Array<T>::Iterator& Array<T>::Iterator::operator++(int) {
 	Iterator iter(*this);
 	if (index_ < array_->size()) index_++;
 	return iter;
 }
 
 template<typename T>
-inline Array<T>::Iterator& Array<T>::Iterator::operator--() {
+inline typename Array<T>::Iterator& Array<T>::Iterator::operator--() {
 	if (index_ > 0) {
 		index_--;
-	} else if (index_ == 0) {
+	}
+	else if (index_ == 0) {
 		index_ = array_->size();
 	}
 	return *this;
 }
 
 template<typename T>
-inline Array<T>::Iterator& Array<T>::Iterator::operator--(int) {
+inline typename Array<T>::Iterator& Array<T>::Iterator::operator--(int) {
 	Iterator iter(*this);
 	if (index_ > 0) {
 		index_--;
-	} else if (index_ == 0) {
+	}
+	else if (index_ == 0) {
 		index_ = array_->size();
 	}
 	return iter;
@@ -437,14 +458,21 @@ inline T* Array<T>::Iterator::operator->() const {
 }
 
 template<typename T>
-inline Array<T>::Iterator& Array<T>::Iterator::operator+=(ptrdiff_t n) {
+inline Array<T>::Iterator& Array<T>::Iterator::operator=(const Iterator& other) {
+	index_ = other.index_;
+	array_ = other.array_;
+	return *this;
+}
+
+template<typename T>
+inline typename Array<T>::Iterator& Array<T>::Iterator::operator+=(ptrdiff_t n) {
 	index_ += n;
 	if (index_ >= array_->size()) index_ = array_->size();
 	return *this;
 }
 
 template<typename T>
-inline Array<T>::Iterator& Array<T>::Iterator::operator-=(ptrdiff_t n) {
+inline typename Array<T>::Iterator& Array<T>::Iterator::operator-=(ptrdiff_t n) {
 	index_ -= n;
 	if (index_ >= array_->size()) index_ = array_->size();
 	return *this;
@@ -453,6 +481,13 @@ inline Array<T>::Iterator& Array<T>::Iterator::operator-=(ptrdiff_t n) {
 template<typename T>
 inline ptrdiff_t Array<T>::Iterator::operator-(const Iterator& other) const {
 	return index_ - other.index_;
+}
+
+template<typename T>
+inline Array<T>::Iterator Array<T>::Iterator::operator-(ptrdiff_t n) const {
+	size_type newIndex = index_ - n;
+	if (newIndex > array_->size()) newIndex = array_->size();
+	return Iterator(newIndex, array_);
 }
 
 template<typename T>
@@ -495,7 +530,7 @@ inline bool Array<T>::ConstIterator::hasNext() const {
 
 template<typename T>
 inline bool Array<T>::ConstIterator::operator==(const ConstIterator& other) const {
-	return index_ == other.index_ || array_ == other.array_;
+	return index_ == other.index_ && array_ == other.array_;
 }
 
 template<typename T>
@@ -525,20 +560,20 @@ inline bool Array<T>::ConstIterator::operator>=(const ConstIterator& other) cons
 
 
 template<typename T>
-inline Array<T>::ConstIterator& Array<T>::ConstIterator::operator++() {
+inline typename Array<T>::ConstIterator& Array<T>::ConstIterator::operator++() {
 	if (index_ < array_->size()) index_++;
 	return *this;
 }
 
 template<typename T>
-inline Array<T>::ConstIterator& Array<T>::ConstIterator::operator++(int) {
+inline typename Array<T>::ConstIterator& Array<T>::ConstIterator::operator++(int) {
 	ConstIterator iter(*this);
 	if (index_ < array_->size()) index_++;
 	return iter;
 }
 
 template<typename T>
-inline Array<T>::ConstIterator& Array<T>::ConstIterator::operator--() {
+inline typename Array<T>::ConstIterator& Array<T>::ConstIterator::operator--() {
 	if (index_ > 0) {
 		index_--;
 	}
@@ -549,7 +584,7 @@ inline Array<T>::ConstIterator& Array<T>::ConstIterator::operator--() {
 }
 
 template<typename T>
-inline Array<T>::ConstIterator& Array<T>::ConstIterator::operator--(int) {
+inline typename Array<T>::ConstIterator& Array<T>::ConstIterator::operator--(int) {
 	ConstIterator iter(*this);
 	if (index_ > 0) {
 		index_--;
@@ -573,14 +608,21 @@ inline const T* Array<T>::ConstIterator::operator->() const {
 }
 
 template<typename T>
-inline Array<T>::ConstIterator& Array<T>::ConstIterator::operator+=(ptrdiff_t n) {
+inline Array<T>::ConstIterator& Array<T>::ConstIterator::operator=(const ConstIterator& other) {
+	index_ = other.index_;
+	array_ = other.array_;
+	return *this;
+}
+
+template<typename T>
+inline typename Array<T>::ConstIterator& Array<T>::ConstIterator::operator+=(ptrdiff_t n) {
 	index_ += n;
 	if (index_ >= array_->size()) index_ = array_->size();
 	return *this;
 }
 
 template<typename T>
-inline Array<T>::ConstIterator& Array<T>::ConstIterator::operator-=(ptrdiff_t n) {
+inline typename Array<T>::ConstIterator& Array<T>::ConstIterator::operator-=(ptrdiff_t n) {
 	index_ -= n;
 	if (index_ >= array_->size()) index_ = array_->size();
 	return *this;
@@ -589,6 +631,14 @@ inline Array<T>::ConstIterator& Array<T>::ConstIterator::operator-=(ptrdiff_t n)
 template<typename T>
 inline ptrdiff_t Array<T>::ConstIterator::operator-(const ConstIterator& other) const {
 	return index_ - other.index_;
+}
+
+template<typename T>
+inline Array<T>::ConstIterator Array<T>::ConstIterator::operator-(ptrdiff_t n) const
+{
+	size_type newIndex = index_ - n;
+	if (newIndex > array_->size()) newIndex = array_->size();
+	return Iterator(newIndex, array_);
 }
 
 template<typename T>

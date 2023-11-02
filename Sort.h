@@ -6,24 +6,6 @@
 #define SORT_THRESHOLD 16
 
 template<typename Iter, typename Compare>
-void sort(Iter begin, Iter end, Compare comp);
-
-template<typename Iter, typename Compare>
-void heapsort(Iter begin, Iter end, Compare comp);
-
-template<typename Iter, typename Compare>
-void introsort(Iter begin, Iter end, Compare comp, int maxdepth);
-
-template<typename Iter, typename Compare>
-Iter partition(Iter begin, Iter end, Compare comp);
-
-template<typename Iter, typename Compare>
-void heapify(Iter begin, Iter end, Compare comp);
-
-template<typename Iter, typename Compare>
-void insertionsort(Iter begin, Iter end, Compare comp);
-
-template<typename Iter, typename Compare>
 void sort(Iter begin, Iter end, Compare comp) {
     int maxdepth = std::floor(std::log(std::distance(begin, end)) / std::log(2)) * 2;
     introsort(begin, end, comp, maxdepth);

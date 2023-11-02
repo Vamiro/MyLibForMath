@@ -54,18 +54,6 @@ void heapify(Iter begin, Iter end, Compare comp) {
     }
 }
 
-// 8 3 7 1 2 5 6
-// 6 3 7 1 2 5 8
-// 7 3 6 1 2 5 8
-// 5 3 6 1 2 7 8
-// 6 3 5 1 2 7 8
-// 2 3 5 1 6 7 8
-// 5 3 2 1 6 7 8
-// 1 3 2 5 6 7 8
-// 3 1 2 5 6 7 8
-// 2 1 3 5 6 7 8
-// 1 2 3 5 6 7 8
-
 template<typename Iter, typename Compare>
 void heapsort(Iter begin, Iter end, Compare comp) {
     heapify(begin, end, comp);

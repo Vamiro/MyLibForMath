@@ -35,6 +35,7 @@ public:
 	class Iterator {
 	public:
 		using value_type = T;
+		using difference_type = ptrdiff_t;
 
 		Iterator();
 		Iterator(size_type index, Array* array);
@@ -63,6 +64,7 @@ public:
 		Iterator& operator-=(ptrdiff_t n);
 		ptrdiff_t operator-(const Iterator& other) const;
 		Iterator operator-(ptrdiff_t n) const;
+		Iterator operator+(ptrdiff_t n) const;
 		T& operator[](ptrdiff_t n);
 
 	private:
@@ -73,6 +75,7 @@ public:
 	class ConstIterator {
 	public:
 		using value_type = T;
+		using difference_type = ptrdiff_t;
 
 		ConstIterator();
 		ConstIterator(size_type index, const Array* array);
@@ -100,6 +103,7 @@ public:
 		ConstIterator& operator-=(ptrdiff_t n);
 		ptrdiff_t operator-(const ConstIterator& other) const;
 		ConstIterator operator-(ptrdiff_t n) const;
+		ConstIterator operator+(ptrdiff_t n) const;
 		const T& operator[](ptrdiff_t n) const;
 	private:
 		size_type index_;
@@ -491,9 +495,21 @@ inline Array<T>::Iterator Array<T>::Iterator::operator-(ptrdiff_t n) const {
 }
 
 template<typename T>
+inline Array<T>::Iterator Array<T>::Iterator::operator+(ptrdiff_t n) const {
+	size_type newIndex = index_ + n;
+	if (newIndex > array_->size()) newIndex = array_->size();
+	return Iterator(newIndex, array_);
+}
+
+template<typename T>
 inline T& Array<T>::Iterator::operator[](ptrdiff_t n) {
 	if (n == array_->size()) return (*array_)[n - 1];
 	return (*array_)[n];
+}
+
+template<typename T>
+Array<T>::Iterator operator+(ptrdiff_t n, typename Array<T>::Iterator iter) {
+	return iter + n;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -634,8 +650,14 @@ inline ptrdiff_t Array<T>::ConstIterator::operator-(const ConstIterator& other) 
 }
 
 template<typename T>
-inline Array<T>::ConstIterator Array<T>::ConstIterator::operator-(ptrdiff_t n) const
-{
+inline Array<T>::ConstIterator Array<T>::ConstIterator::operator-(ptrdiff_t n) const {
+	size_type newIndex = index_ - n;
+	if (newIndex > array_->size()) newIndex = array_->size();
+	return Iterator(newIndex, array_);
+}
+
+template<typename T>
+inline Array<T>::ConstIterator Array<T>::ConstIterator::operator+(ptrdiff_t n) const {
 	size_type newIndex = index_ - n;
 	if (newIndex > array_->size()) newIndex = array_->size();
 	return Iterator(newIndex, array_);
@@ -645,6 +667,11 @@ template<typename T>
 inline const T& Array<T>::ConstIterator::operator[](ptrdiff_t n) const {
 	if (n == array_->size()) return (*array_)[n - 1];
 	return (*array_)[n];
+}
+
+template<typename T>
+Array<T>::ConstIterator operator+(ptrdiff_t n, typename Array<T>::ConstIterator iter) {
+	return iter + n;
 }
 
 #endif // ARRAY_H
